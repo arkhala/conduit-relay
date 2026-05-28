@@ -1492,7 +1492,7 @@ setInterval(async () => {
 // Start
 initDb().then(() => {
   app.listen(PORT, () => {
-    console.log(`Dashboard running on http://localhost:${PORT}`);
+    console.log(`Dashboard running on ${dashboardUrl}`);
     if (SERVERS.length === 0) {
       console.log('No servers configured - setup wizard will guide you');
     } else {
