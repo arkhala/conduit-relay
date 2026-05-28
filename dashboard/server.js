@@ -836,8 +836,17 @@ app.get('/join/:token', (req, res) => {
     return res.status(500).type('text/plain').send('echo "Dashboard SSH key not found"');
   }
 
-  const dashboardHost = req.headers.host?.split(':')[0] || req.hostname;
-  const dashboardPort = PORT;
+// Smart public URL detection (works with Traefik, Nginx, Caddy, or direct access)
+const forwardedProto = req.headers['x-forwarded-proto'];
+const isHttps = req.secure || forwardedProto === 'https' || forwardedProto?.startsWith('https');
+
+const dashboardHost = req.headers.host?.split(':')[0] || req.hostname;
+const protocol = isHttps ? 'https' : 'http';
+
+// Build clean public URL (no port if behind reverse proxy on standard ports)
+const dashboardUrl = (isHttps && !req.headers.host?.includes(':'))
+  ? `${protocol}://${dashboardHost}`
+  : `${protocol}://${dashboardHost}:${PORT}`;
   const customSshPort = req.query.port ? parseInt(req.query.port, 10) : null;
 
   const script = `#!/bin/bash
@@ -986,7 +995,7 @@ else
     echo "  Conduit already installed: \$(/usr/local/bin/conduit --version 2>/dev/null || echo 'unknown')"
   else
     echo "  Installing Conduit Relay..."
-    curl -sL "https://raw.githubusercontent.com/paradixe/conduit-relay/main/install.sh" | bash
+    curl -sL "https://raw.githubusercontent.com/paradixe/conduit-relay/main/install.sh" | sh
   fi
 fi
 
@@ -996,7 +1005,7 @@ HOSTNAME=\$(hostname | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g' | cut
 [ -z "\$HOSTNAME" ] && HOSTNAME="server"
 IP=\$(curl -4 -s --connect-timeout 5 ifconfig.me 2>/dev/null || curl -4 -s --connect-timeout 5 icanhazip.com 2>/dev/null || hostname -I | awk '{print \$1}')
 
-RESULT=\$(curl -sX POST "http://${dashboardHost}:${dashboardPort}/api/register" \\
+RESULT=$(curl -sX POST "${dashboardUrl}/api/register" \\
   -H "Content-Type: application/json" \\
   -H "X-Join-Token: ${JOIN_TOKEN}" \\
   -d "{\\"name\\":\\"\$HOSTNAME\\",\\"host\\":\\"\$IP\\",\\"user\\":\\"$MON_USER\\",\\"sshPort\\":\$SSH_PORT}" 2>/dev/null)
@@ -1010,7 +1019,7 @@ if echo "\$RESULT" | grep -q '"success":true'; then
   echo "  SSH:  \$SSH_PORT"
   echo "  User: $MON_USER"
   echo "  Mode: \$DEPLOY_MODE"
-  echo "  View: http://${dashboardHost}:${dashboardPort}"
+  echo "  View: ${dashboardUrl}"
   echo "════════════════════════════════════════════════"
   echo ""
 else
@@ -1065,7 +1074,7 @@ app.get('/api/status', requireAuth, (req, res) => {
   res.json({
     firstRun: isFirstRun,
     serverCount: SERVERS.length,
-    joinCommand: JOIN_TOKEN ? `curl -sL "http://${dashboardHost}:${PORT}/join/${JOIN_TOKEN}" | bash` : null,
+    joinCommand: JOIN_TOKEN ? `curl -sL "https://${dashboardHost}:${PORT}/join/${JOIN_TOKEN}" | sh` : null,
     hasJoinToken: !!JOIN_TOKEN
   });
 });
