@@ -986,7 +986,7 @@ else
     echo "  Conduit already installed: \$(/usr/local/bin/conduit --version 2>/dev/null || echo 'unknown')"
   else
     echo "  Installing Conduit Relay..."
-    curl -sL "https://raw.githubusercontent.com/paradixe/conduit-relay/main/install.sh" | bash
+    curl -sL "https://raw.githubusercontent.com/paradixe/conduit-relay/main/install.sh" | sh
   fi
 fi
 
@@ -1065,7 +1065,7 @@ app.get('/api/status', requireAuth, (req, res) => {
   res.json({
     firstRun: isFirstRun,
     serverCount: SERVERS.length,
-    joinCommand: JOIN_TOKEN ? `curl -sL "https://${dashboardHost}/join/${JOIN_TOKEN}" | bash` : null,
+    joinCommand: JOIN_TOKEN ? `curl -sL "https://${dashboardHost}/join/${JOIN_TOKEN}" | sh` : null,
     hasJoinToken: !!JOIN_TOKEN
   });
 });
