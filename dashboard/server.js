@@ -1046,11 +1046,14 @@ app.post('/api/register', (req, res) => {
       sshPort: parsedPort || SERVERS[existingIdx].sshPort || null
     };
     console.log(`[JOIN] Server updated: ${name} (${host}:${parsedPort || 22})`);
-  } else {
-    // Add new server
-    SERVERS.push({ name, host, user: user || CONDUIT_MON_USER, sshPort: parsedPort, bandwidthLimit: null });
-    console.log(`[JOIN] Server registered: ${name} (${host}:${parsedPort || 22})`);
-  }
+} else {
+  // Add new server with random suffix for uniqueness
+  const randomSuffix = Math.random().toString(36).substring(2, 8);
+  const finalName = `${name}-${randomSuffix}`;
+
+  SERVERS.push({ name: finalName, host, user: user || CONDUIT_MON_USER, sshPort: parsedPort, bandwidthLimit: null });
+  console.log(`[JOIN] Server registered: ${finalName} (${host}:${parsedPort || 22})`);
+}
 
   saveServers();
   statsCache = { data: null, timestamp: 0 }; // Clear cache to fetch new server
